@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.24.2"
+__generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 
@@ -59,13 +59,13 @@ def _(alt, df_teste):
         .encode(
             y=alt.Y('Resultados:Q'),
             x=alt.X('Valor gasto (BRL):Q'),
-            color=alt.Color('dia_semana:N').scale(scheme='lightgreyred'),
+            color=alt.Color('mes:N').scale(scheme='lightgreyred'),
             # row=alt.Row('mes')
             # size=alt.Size('dia_semana:Q')
         )
         .mark_point(filled=True, opacity=.7, size=100)
         .facet(
-            facet=alt.Facet('mes:N'),
+            facet=alt.Facet('dia_semana:N'),
             columns=3
         )
     )
