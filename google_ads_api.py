@@ -9,15 +9,54 @@ def _():
     import requests
     import marimo as mo
     import polars as pl
+
     return mo, pl, requests
 
 
-@app.cell
-def _(mo, pl):
-    CSV_PATH = r"C:\Users\fernando.masumoto\Downloads\per_store.csv"
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Select api key file
+    """)
+    return
 
+
+@app.cell(hide_code=True)
+def _(mo):
+    file_api_key = mo.ui.file(
+        filetypes=[".txt"],
+        multiple=False,
+        kind="area",
+        label="Arraste o arquivo CSV aqui ou clique para selecionar",
+    )
+    file_api_key
+    return (file_api_key,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Select places_id file
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    file_places_ui = mo.ui.file(
+        filetypes=[".csv"],
+        multiple=False,
+        kind="area",
+        label="Arraste o arquivo CSV aqui ou clique para selecionar",
+    )
+    file_places_ui
+    return (file_places_ui,)
+
+
+@app.cell
+def _(file_places_ui, mo, pl):
     try:
-        df_csv = pl.read_csv(CSV_PATH, columns=["place_id"])
+        df_csv = pl.read_csv(file_places_ui.contents() , columns=["place_id"])
         unique_ids = df_csv["place_id"].drop_nulls().unique().to_list()
         csv_status = mo.callout(
             mo.md(f"✅ Loaded **{len(unique_ids)} unique place IDs** from `per_store.csv`"),
@@ -27,12 +66,6 @@ def _(mo, pl):
         unique_ids = []
         csv_status = mo.callout(mo.md(f"❌ Could not read CSV: {_e}"), kind="danger")
 
-    api_key_input = mo.ui.text(
-        label="Google Places API Key",
-        placeholder="YOUR_API_KEY",
-        kind="password",
-    )
-
     ids_preview = mo.ui.text_area(
         label=f"Place IDs loaded from CSV ({len(unique_ids)} unique)",
         value="\n".join(unique_ids),
@@ -40,12 +73,12 @@ def _(mo, pl):
         disabled=True,
     )
 
-    mo.vstack([csv_status, api_key_input, ids_preview])
-    return CSV_PATH, api_key_input, ids_preview, unique_ids
+    mo.vstack([csv_status, ids_preview])
+    return (unique_ids,)
 
 
 @app.cell
-def _(api_key_input, mo, requests, unique_ids):
+def _(file_api_key, mo, requests, unique_ids):
     BASE_URL = "https://places.googleapis.com/v1/places/{place_id}"
     FIELD_MASK = "displayName,formattedAddress,addressComponents"
 
@@ -81,7 +114,7 @@ def _(api_key_input, mo, requests, unique_ids):
 
         return ""
 
-    api_key = api_key_input.value.strip()
+    api_key = file_api_key.contents().strip()
     place_ids = unique_ids  # sourced directly from the CSV
 
     results = []
@@ -122,17 +155,7 @@ def _(api_key_input, mo, requests, unique_ids):
         kind="success" if not errors else "warn",
     )
     summary
-    return (
-        BASE_URL,
-        FIELD_MASK,
-        api_key,
-        errors,
-        extract_city,
-        fetch_place,
-        pid,
-        place_ids,
-        results,
-    )
+    return errors, results
 
 
 @app.cell
@@ -150,7 +173,7 @@ def _(errors, mo, results):
     mo.vstack(elements) if elements else mo.callout(
         mo.md("No results yet."), kind="warn"
     )
-    return (elements,)
+    return
 
 
 if __name__ == "__main__":
